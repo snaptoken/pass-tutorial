@@ -1,0 +1,10 @@
+---
+:name: pass
+:version: "0.0.1"
+:title: Build Your Own Password Manager
+:rouge_theme: github
+:bold_weight: 500
+:repo_author:
+  :name: snaptoken
+  :email: snaptoken@viewsourcecode.org
+...

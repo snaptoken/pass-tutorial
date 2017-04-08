@@ -1,0 +1,152 @@
+~~~ step: correct-horse-battery-staple
+diff --git a/src/password-store.sh b/src/password-store.sh
+new file mode 100644
+--- /dev/null
++++ b/src/password-store.sh
+@@ -0,0 +1,3 @@
++#!/usr/bin/env bash
++
++echo "correcthorsebatterystaple"
+
+~~~ step: urandom
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -1,3 +1,3 @@
+ #!/usr/bin/env bash
+ 
+-echo "correcthorsebatterystaple"
++LC_ALL=C tr -dc "[:graph:]" < /dev/urandom
+
+~~~ step: take
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -1,3 +1,4 @@
+ #!/usr/bin/env bash
+ 
+-LC_ALL=C tr -dc "[:graph:]" < /dev/urandom
++read -r -n 25 pass < <(LC_ALL=C tr -dc "[:graph:]" < /dev/urandom)
++echo $pass
+
+~~~ step: variables
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -1,4 +1,8 @@
+ #!/usr/bin/env bash
+ 
+-read -r -n 25 pass < <(LC_ALL=C tr -dc "[:graph:]" < /dev/urandom)
++GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
++CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
++
++read -r -n $GENERATED_LENGTH pass \
++  < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+ echo $pass
+
+~~~ step: function
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -3,6 +3,10 @@
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+ 
+-read -r -n $GENERATED_LENGTH pass \
+-  < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+-echo $pass
++cmd_generate() {
++  read -r -n $GENERATED_LENGTH pass \
++    < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++  echo $pass
++}
++
++cmd_generate
+
+~~~ step: command
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -9,4 +9,8 @@ cmd_generate() {
+   echo $pass
+ }
+ 
+-cmd_generate
++case "$1" in
++  generate) shift;           cmd_generate "$@" ;;
++  *)                         echo "Unrecognized command '$1'." ;;
++esac
++exit 0
+
+~~~ step: version
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -3,6 +3,21 @@
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+ 
++cmd_version() {
++  cat <<-_EOF
++	============================================
++	= pass: the standard unix password manager =
++	=                                          =
++	=                   v1.7                   =
++	=                                          =
++	=             Jason A. Donenfeld           =
++	=               Jason@zx2c4.com            =
++	=                                          =
++	=      http://www.passwordstore.org/       =
++	============================================
++	_EOF
++}
++
+ cmd_generate() {
+   read -r -n $GENERATED_LENGTH pass \
+     < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+@@ -10,6 +25,7 @@ cmd_generate() {
+ }
+ 
+ case "$1" in
++  version|--version) shift;  cmd_version "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   *)                         echo "Unrecognized command '$1'." ;;
+ esac
+
+~~~ step: help
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -18,13 +18,32 @@ cmd_version() {
+ 	_EOF
+ }
+ 
++cmd_usage() {
++  cmd_version
++  echo
++  cat <<-_EOF
++	Usage:
++	    $PROGRAM generate
++	        Generate a new password.
++	    $PROGRAM help
++	        Show this text.
++	    $PROGRAM version
++	        Show version information.
++
++	More information may be found in the pass(1) man page.
++	_EOF
++}
++
+ cmd_generate() {
+   read -r -n $GENERATED_LENGTH pass \
+     < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+   echo $pass
+ }
+ 
++PROGRAM="${0##*/}"
++
+ case "$1" in
++  help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   *)                         echo "Unrecognized command '$1'." ;;
