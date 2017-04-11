@@ -33,31 +33,28 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 diff --git a/src/password-store.sh b/src/password-store.sh
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
-@@ -1,4 +1,8 @@
+@@ -1,4 +1,7 @@
  #!/usr/bin/env bash
  
 -read -r -n 25 pass < <(LC_ALL=C tr -dc "[:graph:]" < /dev/urandom)
 +GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
 +CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
 +
-+read -r -n $GENERATED_LENGTH pass \
-+  < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
  echo $pass
 
 ~~~ step: function
 diff --git a/src/password-store.sh b/src/password-store.sh
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
-@@ -3,6 +3,10 @@
+@@ -3,5 +3,9 @@
  GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
  
--read -r -n $GENERATED_LENGTH pass \
--  < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+-read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
 -echo $pass
 +cmd_generate() {
-+  read -r -n $GENERATED_LENGTH pass \
-+    < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++  read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
 +  echo $pass
 +}
 +
@@ -67,7 +64,7 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 diff --git a/src/password-store.sh b/src/password-store.sh
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
-@@ -9,4 +9,8 @@ cmd_generate() {
+@@ -8,4 +8,8 @@ cmd_generate() {
    echo $pass
  }
  
@@ -82,7 +79,7 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 diff --git a/src/password-store.sh b/src/password-store.sh
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
-@@ -3,6 +3,21 @@
+@@ -3,12 +3,28 @@
  GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
  
@@ -102,9 +99,8 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +}
 +
  cmd_generate() {
-   read -r -n $GENERATED_LENGTH pass \
-     < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
-@@ -10,6 +25,7 @@ cmd_generate() {
+   read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+   echo $pass
  }
  
  case "$1" in
@@ -117,7 +113,7 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 diff --git a/src/password-store.sh b/src/password-store.sh
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
-@@ -18,13 +18,32 @@ cmd_version() {
+@@ -18,12 +18,31 @@ cmd_version() {
  	_EOF
  }
  
@@ -138,8 +134,7 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +}
 +
  cmd_generate() {
-   read -r -n $GENERATED_LENGTH pass \
-     < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+   read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
    echo $pass
  }
  
@@ -150,3 +145,394 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    version|--version) shift;  cmd_version "$@" ;;
    generate) shift;           cmd_generate "$@" ;;
    *)                         echo "Unrecognized command '$1'." ;;
+
+~~~ step: persist
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -1,8 +1,20 @@
+ #!/usr/bin/env bash
+ 
++PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store2}"
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+ 
++yesno() {
++  [[ -t 0 ]] || return 0
++  local response
++  read -r -p "$1 [y/N] " response
++  [[ $response == [yY] ]] || exit 1
++}
++die() {
++  echo "$@" >&2
++  exit 1
++}
++
+ cmd_version() {
+   cat <<-_EOF
+ 	============================================
+@@ -35,8 +47,18 @@ cmd_usage() {
+ }
+ 
+ cmd_generate() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local path="$1"
++  mkdir -p -v "$PREFIX/$(dirname "$path")"
++  local passfile="$PREFIX/$path.txt"
++
++  [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
++
+   read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+-  echo $pass
++  echo $pass > $passfile
++
++  printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
++         "$path" "$pass"
+ }
+ 
+ PROGRAM="${0##*/}"
+
+~~~ step: pass-length
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -35,8 +35,8 @@ cmd_usage() {
+   echo
+   cat <<-_EOF
+ 	Usage:
+-	    $PROGRAM generate
+-	        Generate a new password.
++	    $PROGRAM generate pass-name [pass-length]
++	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	    $PROGRAM help
+ 	        Show this text.
+ 	    $PROGRAM version
+@@ -47,14 +47,15 @@ cmd_usage() {
+ }
+ 
+ cmd_generate() {
+-  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
++  local length="${2:-$GENERATED_LENGTH}"
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
+   local passfile="$PREFIX/$path.txt"
+ 
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+ 
+-  read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++  read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+   echo $pass > $passfile
+ 
+   printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
+
+~~~ step: validation
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -14,6 +14,13 @@ die() {
+   echo "$@" >&2
+   exit 1
+ }
++check_sneaky_paths() {
++  local path
++  for path in "$@"; do
++    [[ $path =~ /\.\.$ || $path =~ ^\.\./ || $path =~ /\.\./ || $path =~ ^\.\.$ ]] && \
++      die "Error: You've attempted to pass a sneaky path to pass. Go home."
++  done
++}
+ 
+ cmd_version() {
+   cat <<-_EOF
+@@ -50,12 +57,15 @@ cmd_generate() {
+   [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
+   local length="${2:-$GENERATED_LENGTH}"
++  check_sneaky_paths "$path"
++  [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
+   local passfile="$PREFIX/$path.txt"
+ 
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+ 
+   read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++  [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
+   echo $pass > $passfile
+ 
+   printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
+
+~~~ step: show
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -42,6 +42,8 @@ cmd_usage() {
+   echo
+   cat <<-_EOF
+ 	Usage:
++	    $PROGRAM show pass-name
++	        Show existing password.
+ 	    $PROGRAM generate pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	    $PROGRAM help
+@@ -53,6 +55,21 @@ cmd_usage() {
+ 	_EOF
+ }
+ 
++cmd_show() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++
++  local path="$1"
++  local passfile="$PREFIX/$path.txt"
++  check_sneaky_paths "$path"
++  if [[ -f $passfile ]]; then
++    cat "$passfile"
++  elif [[ -d $PREFIX/$path ]]; then
++    die "Error: $path is a directory."
++  else
++    die "Error: $path is not in the password store."
++  fi
++}
++
+ cmd_generate() {
+   [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
+@@ -73,10 +90,12 @@ cmd_generate() {
+ }
+ 
+ PROGRAM="${0##*/}"
++COMMAND="$1"
+ 
+ case "$1" in
+   help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
++  show) shift;               cmd_show "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   *)                         echo "Unrecognized command '$1'." ;;
+ esac
+
+~~~ step: default
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -42,7 +42,7 @@ cmd_usage() {
+   echo
+   cat <<-_EOF
+ 	Usage:
+-	    $PROGRAM show pass-name
++	    $PROGRAM [show] pass-name
+ 	        Show existing password.
+ 	    $PROGRAM generate pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+@@ -97,6 +97,6 @@ case "$1" in
+   version|--version) shift;  cmd_version "$@" ;;
+   show) shift;               cmd_show "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+-  *)                         echo "Unrecognized command '$1'." ;;
++  *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
+ exit 0
+
+~~~ step: insert
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -44,6 +44,8 @@ cmd_usage() {
+ 	Usage:
+ 	    $PROGRAM [show] pass-name
+ 	        Show existing password.
++	    $PROGRAM insert pass-name
++	        Insert new password.
+ 	    $PROGRAM generate pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	    $PROGRAM help
+@@ -70,6 +72,31 @@ cmd_show() {
+   fi
+ }
+ 
++cmd_insert() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local path="${1%/}"
++  local passfile="$PREFIX/$path.txt"
++  check_sneaky_paths "$path"
++
++  [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
++
++  mkdir -p -v "$PREFIX/$(dirname "$path")"
++
++  local password password_again
++  while true; do
++    read -r -p "Enter password for $path: " -s password || exit 1
++    echo
++    read -r -p "Retype password for $path: " -s password_again || exit 1
++    echo
++    if [[ $password == "$password_again" ]]; then
++      echo "$password" > "$passfile"
++      break
++    else
++      die "Error: the entered passwords do not match."
++    fi
++  done
++}
++
+ cmd_generate() {
+   [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
+@@ -96,6 +123,7 @@ case "$1" in
+   help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
+   show) shift;               cmd_show "$@" ;;
++  insert|add) shift;         cmd_insert "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
+
+~~~ step: rm
+diff --git a/src/password-store.sh b/src/password-store.sh
+old mode 100644
+new mode 100755
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -48,6 +48,8 @@ cmd_usage() {
+ 	        Insert new password.
+ 	    $PROGRAM generate pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
++	    $PROGRAM rm pass-name
++	        Remove existing password or directory.
+ 	    $PROGRAM help
+ 	        Show this text.
+ 	    $PROGRAM version
+@@ -116,6 +118,22 @@ cmd_generate() {
+          "$path" "$pass"
+ }
+ 
++cmd_delete() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local path="$1"
++  check_sneaky_paths "$path"
++
++  local passdir="$PREFIX/${path%/}"
++  local passfile="$PREFIX/$path.txt"
++  [[ -f $passfile && -d $passdir && $path == */ || ! -f $passfile ]] && passfile="${passdir%/}/"
++  [[ -e $passfile ]] || die "Error: $path is not in the password store."
++
++  yesno "Are you sure you would like to delete $path?"
++
++  rm -r -f -v "$passfile"
++  rmdir -p "${passfile%/*}" 2>/dev/null
++}
++
+ PROGRAM="${0##*/}"
+ COMMAND="$1"
+ 
+@@ -125,6 +143,7 @@ case "$1" in
+   show) shift;               cmd_show "$@" ;;
+   insert|add) shift;         cmd_insert "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
++  delete|rm|remove) shift;   cmd_delete "$@" ;;
+   *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
+ exit 0
+
+~~~ step: mv
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -50,6 +50,8 @@ cmd_usage() {
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	    $PROGRAM rm pass-name
+ 	        Remove existing password or directory.
++	    $PROGRAM mv old-path new-path
++	        Renames or moves old-path to new-path.
+ 	    $PROGRAM help
+ 	        Show this text.
+ 	    $PROGRAM version
+@@ -134,6 +136,30 @@ cmd_delete() {
+   rmdir -p "${passfile%/*}" 2>/dev/null
+ }
+ 
++cmd_move() {
++  [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND old-path new-path"
++  check_sneaky_paths "$@"
++  local old_path="$PREFIX/${1%/}"
++  local old_dir="$old_path"
++  local new_path="$PREFIX/$2"
++
++  if ! [[ -f $old_path.txt && -d $old_path && $1 == */ || ! -f $old_path.txt ]]; then
++    old_dir="${old_path%/*}"
++    old_path="${old_path}.txt"
++  fi
++  echo "$old_path"
++  [[ -e $old_path ]] || die "Error: $1 is not in the password store."
++
++  mkdir -p -v "${new_path%/*}"
++  [[ -d $old_path || -d $new_path || $new_path == */ ]] || new_path="${new_path}.txt"
++
++  local interactive="-i"
++  [[ ! -t 0 ]] && interactive="-f"
++
++  mv $interactive -v "$old_path" "$new_path" || exit 1
++  rmdir -p "$old_dir" 2>/dev/null
++}
++
+ PROGRAM="${0##*/}"
+ COMMAND="$1"
+ 
+@@ -144,6 +170,7 @@ case "$1" in
+   insert|add) shift;         cmd_insert "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   delete|rm|remove) shift;   cmd_delete "$@" ;;
++  rename|mv) shift;          cmd_move "$@" ;;
+   *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
+ exit 0
+
+~~~ step: cp
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -52,6 +52,8 @@ cmd_usage() {
+ 	        Remove existing password or directory.
+ 	    $PROGRAM mv old-path new-path
+ 	        Renames or moves old-path to new-path.
++	    $PROGRAM cp old-path new-path
++	        Copies old-path to new-path.
+ 	    $PROGRAM help
+ 	        Show this text.
+ 	    $PROGRAM version
+@@ -136,7 +138,10 @@ cmd_delete() {
+   rmdir -p "${passfile%/*}" 2>/dev/null
+ }
+ 
+-cmd_move() {
++cmd_copy_move() {
++  local move=1
++  [[ $1 == "copy" ]] && move=0
++  shift
+   [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND old-path new-path"
+   check_sneaky_paths "$@"
+   local old_path="$PREFIX/${1%/}"
+@@ -156,8 +161,12 @@ cmd_move() {
+   local interactive="-i"
+   [[ ! -t 0 ]] && interactive="-f"
+ 
+-  mv $interactive -v "$old_path" "$new_path" || exit 1
+-  rmdir -p "$old_dir" 2>/dev/null
++  if [[ $move -eq 1 ]]; then
++    mv $interactive -v "$old_path" "$new_path" || exit 1
++    rmdir -p "$old_dir" 2>/dev/null
++  else
++    cp $interactive -r -v "$old_path" "$new_path" || exit 1
++  fi
+ }
+ 
+ PROGRAM="${0##*/}"
+@@ -170,7 +179,8 @@ case "$1" in
+   insert|add) shift;         cmd_insert "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   delete|rm|remove) shift;   cmd_delete "$@" ;;
+-  rename|mv) shift;          cmd_move "$@" ;;
++  rename|mv) shift;          cmd_copy_move "move" "$@" ;;
++  copy|cp) shift;            cmd_copy_move "copy" "$@" ;;
+   *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
+ exit 0
