@@ -27,7 +27,6 @@ manager in small steps.
   * The `rm` command
   * The `mv` command
   * The `cp` command
-  * Subdirectories?
 3. Encryption
   * The `init` command
   * GPG options and whether to use `gpg2`
@@ -35,7 +34,6 @@ manager in small steps.
   * `set_gpg_recipients()`
   * Encrypt with `generate` and `insert` commands
   * Decrypt with `show` command
-  * The `rm`, `mv`, and `cp` commands
   * Reencrypt using `init` command
 4. Copy to clipboard
   * Generic `clip()`

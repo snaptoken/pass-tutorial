@@ -388,8 +388,6 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 
 ~~~ step: rm
 diff --git a/src/password-store.sh b/src/password-store.sh
-old mode 100644
-new mode 100755
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
 @@ -48,6 +48,8 @@ cmd_usage() {
@@ -536,3 +534,328 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    *)                         COMMAND="show"; cmd_show "$@" ;;
  esac
  exit 0
+
+~~~ step: init
+diff --git a/src/password-store.sh b/src/password-store.sh
+old mode 100644
+new mode 100755
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -42,6 +42,8 @@ cmd_usage() {
+   echo
+   cat <<-_EOF
+ 	Usage:
++	    $PROGRAM init gpg-id...
++	        Initialize new password storage and use gpg-id for encryption.
+ 	    $PROGRAM [show] pass-name
+ 	        Show existing password.
+ 	    $PROGRAM insert pass-name
+@@ -63,6 +65,17 @@ cmd_usage() {
+ 	_EOF
+ }
+ 
++cmd_init() {
++  [[ $# -lt 1 ]] && die "Usage: $PROGRAM $COMMAND gpg-id..."
++
++  local gpg_id="$PREFIX/.gpg-id"
++
++  mkdir -v -p "$PREFIX"
++  printf "%s\n" "$@" > "$gpg_id"
++  local id_print="$(printf "%s, " "$@")"
++  echo "Password store initialized for ${id_print%, }"
++}
++
+ cmd_show() {
+   [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
+ 
+@@ -173,6 +186,7 @@ PROGRAM="${0##*/}"
+ COMMAND="$1"
+ 
+ case "$1" in
++  init) shift;               cmd_init "$@" ;;
+   help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
+   show) shift;               cmd_show "$@" ;;
+
+~~~ step: gpg
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -1,5 +1,11 @@
+ #!/usr/bin/env bash
+ 
++GPG_OPTS=( $PASSWORD_STORE_GPG_OPTS "--quiet" "--yes" "--compress-algo=none" "--no-encrypt-to" )
++GPG="gpg"
++export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null)}"
++which gpg2 &>/dev/null && GPG="gpg2"
++[[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
++
+ PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store2}"
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+
+~~~ step: gpg-winpath
+diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
+new file mode 100644
+--- /dev/null
++++ b/src/platform/cygwin.sh
+@@ -0,0 +1,18 @@
++gpg_winpath() {
++  local args=("$@")
++  local could_be_filenames="true"
++  local i
++  for ((i=${#args[@]}-1; i>=0; i--)); do
++    if ( [ $i -gt 0 ] && [ "${args[$i-1]}" = "-o" ] && [ "${args[$i]}" != "-" ] ); then
++      args[$i]="$(cygpath -am "${args[$i]}")"
++    else
++      could_be_filenames="false"
++    fi
++  done
++  $GPG_ORIG "${args[@]}"
++}
++
++if $GPG --help | grep -q 'Home: [A-Z]:[/\\]'; then
++  GPG_ORIG="$GPG"
++  GPG=gpg_winpath
++fi
+
+~~~ step: source-platform
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -28,6 +28,9 @@ check_sneaky_paths() {
+   done
+ }
+ 
++source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
++  2>/dev/null
++
+ cmd_version() {
+   cat <<-_EOF
+ 	============================================
+
+~~~ step: gpg-recipients
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -20,6 +20,35 @@ die() {
+   echo "$@" >&2
+   exit 1
+ }
++set_gpg_recipients() {
++  GPG_RECIPIENT_ARGS=( )
++  GPG_RECIPIENTS=( )
++
++  if [[ -n $PASSWORD_STORE_KEY ]]; then
++    for gpg_id in $PASSWORD_STORE_KEY; do
++      GPG_RECIPIENT_ARGS+=( "-r" "$gpg_id" )
++      GPG_RECIPIENTS+=( "$gpg_id" )
++    done
++    return
++  fi
++
++  if [[ ! -f "$PREFIX/.gpg-id" ]]; then
++    cat >&2 <<-_EOF
++	Error: You must run:
++	    $PROGRAM init your-gpg-id
++	before you may use the password store.
++
++	_EOF
++    cmd_usage
++    exit 1
++  fi
++
++  local gpg_id
++  while read -r gpg_id; do
++    GPG_RECIPIENT_ARGS+=( "-r" "$gpg_id" )
++    GPG_RECIPIENTS+=( "$gpg_id" )
++  done < "$PREFIX/.gpg-id"
++}
+ check_sneaky_paths() {
+   local path
+   for path in "$@"; do
+
+~~~ step: txt-to-gpg
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -118,7 +118,7 @@ cmd_show() {
+   [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
+ 
+   local path="$1"
+-  local passfile="$PREFIX/$path.txt"
++  local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+   if [[ -f $passfile ]]; then
+     cat "$passfile"
+@@ -132,7 +132,7 @@ cmd_show() {
+ cmd_insert() {
+   [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
+   local path="${1%/}"
+-  local passfile="$PREFIX/$path.txt"
++  local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+ 
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
+@@ -161,7 +161,7 @@ cmd_generate() {
+   check_sneaky_paths "$path"
+   [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
+-  local passfile="$PREFIX/$path.txt"
++  local passfile="$PREFIX/$path.gpg"
+ 
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+ 
+@@ -179,7 +179,7 @@ cmd_delete() {
+   check_sneaky_paths "$path"
+ 
+   local passdir="$PREFIX/${path%/}"
+-  local passfile="$PREFIX/$path.txt"
++  local passfile="$PREFIX/$path.gpg"
+   [[ -f $passfile && -d $passdir && $path == */ || ! -f $passfile ]] && passfile="${passdir%/}/"
+   [[ -e $passfile ]] || die "Error: $path is not in the password store."
+ 
+@@ -199,15 +199,15 @@ cmd_copy_move() {
+   local old_dir="$old_path"
+   local new_path="$PREFIX/$2"
+ 
+-  if ! [[ -f $old_path.txt && -d $old_path && $1 == */ || ! -f $old_path.txt ]]; then
++  if ! [[ -f $old_path.gpg && -d $old_path && $1 == */ || ! -f $old_path.gpg ]]; then
+     old_dir="${old_path%/*}"
+-    old_path="${old_path}.txt"
++    old_path="${old_path}.gpg"
+   fi
+   echo "$old_path"
+   [[ -e $old_path ]] || die "Error: $1 is not in the password store."
+ 
+   mkdir -p -v "${new_path%/*}"
+-  [[ -d $old_path || -d $new_path || $new_path == */ ]] || new_path="${new_path}.txt"
++  [[ -d $old_path || -d $new_path || $new_path == */ ]] || new_path="${new_path}.gpg"
+ 
+   local interactive="-i"
+   [[ ! -t 0 ]] && interactive="-f"
+
+~~~ step: encrypt
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -138,6 +138,7 @@ cmd_insert() {
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
+ 
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
++  set_gpg_recipients
+ 
+   local password password_again
+   while true; do
+@@ -146,7 +147,8 @@ cmd_insert() {
+     read -r -p "Retype password for $path: " -s password_again || exit 1
+     echo
+     if [[ $password == "$password_again" ]]; then
+-      echo "$password" > "$passfile"
++      $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<< "$password" \
++	|| die "Password encryption aborted."
+       break
+     else
+       die "Error: the entered passwords do not match."
+@@ -161,13 +163,15 @@ cmd_generate() {
+   check_sneaky_paths "$path"
+   [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
++  set_gpg_recipients
+   local passfile="$PREFIX/$path.gpg"
+ 
+   [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
+ 
+   read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
+   [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
+-  echo $pass > $passfile
++  $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" \
++    || die "Password encryption aborted."
+ 
+   printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
+          "$path" "$pass"
+
+~~~ step: decrypt
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -121,7 +121,7 @@ cmd_show() {
+   local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+   if [[ -f $passfile ]]; then
+-    cat "$passfile"
++    $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
+   elif [[ -d $PREFIX/$path ]]; then
+     die "Error: $path is a directory."
+   else
+
+~~~ step: reencrypt-path
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -49,6 +49,43 @@ set_gpg_recipients() {
+     GPG_RECIPIENTS+=( "$gpg_id" )
+   done < "$PREFIX/.gpg-id"
+ }
++reencrypt_path() {
++  local prev_gpg_recipients="" gpg_keys="" current_keys="" index passfile
++  local groups="$($GPG $PASSWORD_STORE_GPG_OPTS --list-config --with-colons | grep "^cfg:group:.*")"
++  while read -r -d "" passfile; do
++    local passfile_dir="${passfile%/*}"
++    passfile_dir="${passfile_dir#$PREFIX}"
++    passfile_dir="${passfile_dir#/}"
++    local passfile_display="${passfile#$PREFIX/}"
++    passfile_display="${passfile_display%.gpg}"
++    local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
++
++    set_gpg_recipients "$passfile_dir"
++    if [[ $prev_gpg_recipients != "${GPG_RECIPIENTS[*]}" ]]; then
++      for index in "${!GPG_RECIPIENTS[@]}"; do
++        local group="$(sed -n "s/^cfg:group:$(sed 's/[\/&]/\\&/g' \
++	  <<<"${GPG_RECIPIENTS[$index]}"):\\(.*\\)\$/\\1/p" <<<"$groups" | head -n 1)"
++        [[ -z $group ]] && continue
++        IFS=";" eval 'GPG_RECIPIENTS+=( $group )' # http://unix.stackexchange.com/a/92190
++        unset GPG_RECIPIENTS[$index]
++      done
++      gpg_keys="$($GPG $PASSWORD_STORE_GPG_OPTS --list-keys --with-colons "${GPG_RECIPIENTS[@]}" \
++	| sed -n 's/sub:[^:]*:[^:]*:[^:]*:\([^:]*\):[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[a-zA-Z]*e[a-zA-Z]*:.*/\1/p' \
++        | LC_ALL=C sort -u)"
++    fi
++    current_keys="$($GPG $PASSWORD_STORE_GPG_OPTS -v --no-secmem-warning --no-permission-warning \
++                    --decrypt --list-only --keyid-format long "$passfile" 2>&1 \
++                    | cut -d ' ' -f 5 | LC_ALL=C sort -u)"
++
++    if [[ $gpg_keys != "$current_keys" ]]; then
++      echo "$passfile_display: reencrypting to ${gpg_keys//$'\n'/ }"
++      $GPG -d "${GPG_OPTS[@]}" "$passfile" \
++	| $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" "${GPG_OPTS[@]}" \
++	&& mv "$passfile_temp" "$passfile" || rm -f "$passfile_temp"
++    fi
++    prev_gpg_recipients="${GPG_RECIPIENTS[*]}"
++  done < <(find "$1" -path '*/.git' -prune -o -iname '*.gpg' -print0)
++}
+ check_sneaky_paths() {
+   local path
+   for path in "$@"; do
+
+~~~ step: init-reencrypt
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -119,6 +119,7 @@ cmd_usage() {
+ 	Usage:
+ 	    $PROGRAM init gpg-id...
+ 	        Initialize new password storage and use gpg-id for encryption.
++		Reencrypt existing passwords using new gpg-id.
+ 	    $PROGRAM [show] pass-name
+ 	        Show existing password.
+ 	    $PROGRAM insert pass-name
+@@ -149,6 +150,8 @@ cmd_init() {
+   printf "%s\n" "$@" > "$gpg_id"
+   local id_print="$(printf "%s, " "$@")"
+   echo "Password store initialized for ${id_print%, }"
++
++  reencrypt_path "$PREFIX/"
+ }
+ 
+ cmd_show() {
