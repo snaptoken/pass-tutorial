@@ -537,8 +537,6 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 
 ~~~ step: init
 diff --git a/src/password-store.sh b/src/password-store.sh
-old mode 100644
-new mode 100755
 --- a/src/password-store.sh
 +++ b/src/password-store.sh
 @@ -42,6 +42,8 @@ cmd_usage() {
@@ -859,3 +857,1113 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  }
  
  cmd_show() {
+
+~~~ step: generic-clip
+diff --git a/src/password-store.sh b/src/password-store.sh
+old mode 100644
+new mode 100755
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -7,6 +7,7 @@ which gpg2 &>/dev/null && GPG="gpg2"
+ [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
+ 
+ PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store2}"
++X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+ 
+@@ -94,6 +95,12 @@ check_sneaky_paths() {
+   done
+ }
+ 
++clip() {
++  echo -n "$1" | xclip -selection "$X_SELECTION" \
++    || die "Error: Could not copy data to the clipboard"
++  echo "Copied $2 to clipboard."
++}
++
+ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
+   2>/dev/null
+ 
+
+~~~ step: cygwin-clip
+diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
+--- a/src/platform/cygwin.sh
++++ b/src/platform/cygwin.sh
+@@ -1,3 +1,8 @@
++clip() {
++  echo -n "$1" > /dev/clipboard
++  echo "Copied $2 to clipboard."
++}
++
+ gpg_winpath() {
+   local args=("$@")
+   local could_be_filenames="true"
+
+~~~ step: macos-clip
+diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+new file mode 100644
+--- /dev/null
++++ b/src/platform/darwin.sh
+@@ -0,0 +1,4 @@
++clip() {
++  echo -n "$1" | pbcopy
++  echo "Copied $2 to clipboard."
++}
+
+~~~ step: show-generate-clip
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -127,11 +127,11 @@ cmd_usage() {
+ 	    $PROGRAM init gpg-id...
+ 	        Initialize new password storage and use gpg-id for encryption.
+ 		Reencrypt existing passwords using new gpg-id.
+-	    $PROGRAM [show] pass-name
++	    $PROGRAM [show] [-c] pass-name
+ 	        Show existing password.
+ 	    $PROGRAM insert pass-name
+ 	        Insert new password.
+-	    $PROGRAM generate pass-name [pass-length]
++	    $PROGRAM generate [-c] pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	    $PROGRAM rm pass-name
+ 	        Remove existing password or directory.
+@@ -162,13 +162,23 @@ cmd_init() {
+ }
+ 
+ cmd_show() {
++  local clip=0
++  if [[ $1 == "-c" ]]; then
++    clip=1
++    shift
++  fi
+   [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
+ 
+   local path="$1"
+   local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+   if [[ -f $passfile ]]; then
+-    $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
++    if [[ $clip -eq 0 ]]; then
++      $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
++    else
++      local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
++      clip "$pass" "$path"
++    fi
+   elif [[ -d $PREFIX/$path ]]; then
+     die "Error: $path is a directory."
+   else
+@@ -204,6 +214,12 @@ cmd_insert() {
+ }
+ 
+ cmd_generate() {
++  local clip=0 pass
++  if [[ $1 == "-c" ]]; then
++    clip=1
++    shift
++  fi
++
+   [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
+   local length="${2:-$GENERATED_LENGTH}"
+@@ -220,8 +236,12 @@ cmd_generate() {
+   $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" \
+     || die "Password encryption aborted."
+ 
+-  printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
+-         "$path" "$pass"
++  if [[ $clip -eq 1 ]]; then
++    clip "$pass" "$path"
++  else
++    printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
++           "$path" "$pass"
++  fi
+ }
+ 
+ cmd_delete() {
+
+~~~ step: generic-clip-secure
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -8,6 +8,7 @@ which gpg2 &>/dev/null && GPG="gpg2"
+ 
+ PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store2}"
+ X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
++CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+ 
+@@ -96,9 +97,19 @@ check_sneaky_paths() {
+ }
+ 
+ clip() {
++  local sleep_argv0="password store sleep on display $DISPLAY"
++  pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
++  local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
+   echo -n "$1" | xclip -selection "$X_SELECTION" \
+     || die "Error: Could not copy data to the clipboard"
+-  echo "Copied $2 to clipboard."
++  (
++    ( exec -a "$sleep_argv0" bash <<<"trap 'kill %1' TERM; sleep '$CLIP_TIME' & wait" )
++    local now="$(xclip -o -selection "$X_SELECTION" | base64)"
++    [[ $now != $(echo -n "$1" | base64) ]] && before="$now"
++    qdbus org.kde.klipper /klipper org.kde.klipper.klipper.clearClipboardHistory &>/dev/null
++    echo "$before" | base64 -d | xclip -selection "$X_SELECTION"
++  ) 2>/dev/null & disown
++  echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
+ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
+
+~~~ step: cygwin-clip-secure
+diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
+--- a/src/platform/cygwin.sh
++++ b/src/platform/cygwin.sh
+@@ -1,6 +1,15 @@
+ clip() {
++  local sleep_argv0="password store sleep on display $DISPLAY"
++  pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
++  local before="$(base64 < /dev/clipboard)"
+   echo -n "$1" > /dev/clipboard
+-  echo "Copied $2 to clipboard."
++  (
++    ( exec -a "$sleep_argv0" sleep "$CLIP_TIME" )
++    local now="$(base64 < /dev/clipboard)"
++    [[ $now != $(echo -n "$1" | base64) ]] && before="$now"
++    echo "$before" | base64 -d > /dev/clipboard
++  ) 2>/dev/null & disown
++  echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
+ gpg_winpath() {
+
+~~~ step: macos-clip-secure
+diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+--- a/src/platform/darwin.sh
++++ b/src/platform/darwin.sh
+@@ -1,4 +1,13 @@
+ clip() {
++  local sleep_argv0="password store sleep for user $(id -u)"
++  pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
++  local before="$(pbpaste | openssl base64)"
+   echo -n "$1" | pbcopy
+-  echo "Copied $2 to clipboard."
++  (
++    ( exec -a "$sleep_argv0" sleep "$CLIP_TIME" )
++    local now="$(pbpaste | openssl base64)"
++    [[ $now != $(echo -n "$1" | openssl base64) ]] && before="$now"
++    echo "$before" | openssl base64 -d | pbcopy
++  ) 2>/dev/null & disown
++  echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+
+~~~ step: generic-getopt
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -112,6 +112,8 @@ clip() {
+   echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
++GETOPT="getopt"
++
+ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
+   2>/dev/null
+ 
+
+~~~ step: macos-getopt
+diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+--- a/src/platform/darwin.sh
++++ b/src/platform/darwin.sh
+@@ -11,3 +11,8 @@ clip() {
+   ) 2>/dev/null & disown
+   echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
++
++GETOPT="$(brew --prefix gnu-getopt 2>/dev/null \
++          || { which port &>/dev/null && echo /opt/local; } \
++          || echo /usr/local \
++	 )/bin/getopt"
+
+~~~ step: freebsd-getopt
+diff --git a/src/platform/freebsd.sh b/src/platform/freebsd.sh
+new file mode 100644
+--- /dev/null
++++ b/src/platform/freebsd.sh
+@@ -0,0 +1 @@
++GETOPT="/usr/local/bin/getopt"
+
+~~~ step: openbsd-getopt
+diff --git a/src/platform/openbsd.sh b/src/platform/openbsd.sh
+new file mode 100644
+--- /dev/null
++++ b/src/platform/openbsd.sh
+@@ -0,0 +1 @@
++GETOPT="gnugetopt"
+
+~~~ step: use-getopt
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -139,13 +139,15 @@ cmd_usage() {
+ 	Usage:
+ 	    $PROGRAM init gpg-id...
+ 	        Initialize new password storage and use gpg-id for encryption.
+-		Reencrypt existing passwords using new gpg-id.
+-	    $PROGRAM [show] [-c] pass-name
+-	        Show existing password.
++	        Reencrypt existing passwords using new gpg-id.
++	    $PROGRAM [show] [--clip,-c] pass-name
++	        Show existing password and optionally put it on the clipboard.
++	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
+ 	    $PROGRAM insert pass-name
+ 	        Insert new password.
+-	    $PROGRAM generate [-c] pass-name [pass-length]
++	    $PROGRAM generate [--clip,-c] pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
++	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
+ 	    $PROGRAM rm pass-name
+ 	        Remove existing password or directory.
+ 	    $PROGRAM mv old-path new-path
+@@ -175,12 +177,16 @@ cmd_init() {
+ }
+ 
+ cmd_show() {
+-  local clip=0
+-  if [[ $1 == "-c" ]]; then
+-    clip=1
+-    shift
+-  fi
+-  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local opts clip=0
++  opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
++  local err=$?
++  eval set -- "$opts"
++  while true; do case $1 in
++    -c|--clip) clip=1; shift ;;
++    --) shift; break ;;
++  esac done
++
++  [[ $err -ne 0 || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] pass-name"
+ 
+   local path="$1"
+   local passfile="$PREFIX/$path.gpg"
+@@ -190,6 +196,7 @@ cmd_show() {
+       $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
+     else
+       local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
++      [[ -n $pass ]] || die "There is no password to put on the clipboard."
+       clip "$pass" "$path"
+     fi
+   elif [[ -d $PREFIX/$path ]]; then
+@@ -227,13 +234,17 @@ cmd_insert() {
+ }
+ 
+ cmd_generate() {
+-  local clip=0 pass
+-  if [[ $1 == "-c" ]]; then
+-    clip=1
+-    shift
+-  fi
++  local opts clip=0 pass
++  opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
++  local err=$?
++  eval set -- "$opts"
++  while true; do case $1 in
++    -c|--clip) clip=1; shift ;;
++    --) shift; break ;;
++  esac done
+ 
+-  [[ $# -ne 2 && $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
++  [[ $err -ne 0 || ( $# -ne 2 && $# -ne 1 ) ]] \
++    && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
+   local path="$1"
+   local length="${2:-$GENERATED_LENGTH}"
+   check_sneaky_paths "$path"
+
+~~~ step: clip-line-number
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -140,7 +140,7 @@ cmd_usage() {
+ 	    $PROGRAM init gpg-id...
+ 	        Initialize new password storage and use gpg-id for encryption.
+ 	        Reencrypt existing passwords using new gpg-id.
+-	    $PROGRAM [show] [--clip,-c] pass-name
++	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+ 	        Show existing password and optionally put it on the clipboard.
+ 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
+ 	    $PROGRAM insert pass-name
+@@ -177,16 +177,17 @@ cmd_init() {
+ }
+ 
+ cmd_show() {
+-  local opts clip=0
+-  opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
++  local opts selected_line clip=0
++  opts="$($GETOPT -o c:: -l clip:: -n "$PROGRAM" -- "$@")"
+   local err=$?
+   eval set -- "$opts"
+   while true; do case $1 in
+-    -c|--clip) clip=1; shift ;;
++    -c|--clip) clip=1; selected_line="${2:-1}"; shift 2 ;;
+     --) shift; break ;;
+   esac done
+ 
+-  [[ $err -ne 0 || $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] pass-name"
++  [[ $err -ne 0 || $# -ne 1 ]] \
++    && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] pass-name"
+ 
+   local path="$1"
+   local passfile="$PREFIX/$path.gpg"
+@@ -195,8 +196,10 @@ cmd_show() {
+     if [[ $clip -eq 0 ]]; then
+       $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
+     else
+-      local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
+-      [[ -n $pass ]] || die "There is no password to put on the clipboard."
++      [[ $selected_line =~ ^[0-9]+$ ]] || die "Clip location '$selected_line' is not a number."
++      local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +${selected_line} | head -n 1)"
++      [[ -n $pass ]] \
++	|| die "There is no password to put on the clipboard at line ${selected_line}."
+       clip "$pass" "$path"
+     fi
+   elif [[ -d $PREFIX/$path ]]; then
+
+~~~ step: insert-opts
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -143,8 +143,10 @@ cmd_usage() {
+ 	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+ 	        Show existing password and optionally put it on the clipboard.
+ 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
+-	    $PROGRAM insert pass-name
+-	        Insert new password.
++	    $PROGRAM insert [--echo,-e | --multiline,-m] [--force,-f] pass-name
++	        Insert new password. Optionally, echo the password back to the console
++	        during entry. Or, optionally, the entry may be multiline. Prompt before
++	        overwriting existing password unless forced.
+ 	    $PROGRAM generate [--clip,-c] pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
+ 	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
+@@ -210,30 +212,54 @@ cmd_show() {
+ }
+ 
+ cmd_insert() {
+-  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local opts multiline=0 noecho=1 force=0
++  opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
++  local err=$?
++  eval set -- "$opts"
++  while true; do case $1 in
++    -m|--multiline) multiline=1; shift ;;
++    -e|--echo) noecho=0; shift ;;
++    -f|--force) force=1; shift ;;
++    --) shift; break ;;
++  esac done
++
++  [[ $err -ne 0 || ( $multiline -eq 1 && $noecho -eq 0 ) || $# -ne 1 ]] \
++    && die "Usage: $PROGRAM $COMMAND [--echo,-e | --multiline,-m] [--force,-f] pass-name"
+   local path="${1%/}"
+   local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+ 
+-  [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
++  [[ $force -eq 0 && -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
+ 
+   mkdir -p -v "$PREFIX/$(dirname "$path")"
+   set_gpg_recipients
+ 
+-  local password password_again
+-  while true; do
+-    read -r -p "Enter password for $path: " -s password || exit 1
++  if [[ $multiline -eq 1 ]]; then
++    echo "Enter contents of $path and press Ctrl+D when finished:"
+     echo
+-    read -r -p "Retype password for $path: " -s password_again || exit 1
+-    echo
+-    if [[ $password == "$password_again" ]]; then
+-      $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<< "$password" \
+-	|| die "Password encryption aborted."
+-      break
+-    else
+-      die "Error: the entered passwords do not match."
+-    fi
+-  done
++    $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" \
++      || die "Password encryption aborted."
++  elif [[ $noecho -eq 1 ]]; then
++    local password password_again
++    while true; do
++      read -r -p "Enter password for $path: " -s password || exit 1
++      echo
++      read -r -p "Retype password for $path: " -s password_again || exit 1
++      echo
++      if [[ $password == "$password_again" ]]; then
++	$GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<< "$password" \
++	  || die "Password encryption aborted."
++	break
++      else
++	die "Error: the entered passwords do not match."
++      fi
++    done
++  else
++    local password
++    read -r -p "Enter password for $path: " -e password
++    $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$password" \
++      || die "Password encryption aborted."
++  fi
+ }
+ 
+ cmd_generate() {
+
+~~~ step: generate-opts
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -11,6 +11,7 @@ X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
+ CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
+ GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
+ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
++CHARACTER_SET_NO_SYMBOLS="${PASSWORD_STORE_CHARACTER_SET_NO_SYMBOLS:-[:alnum:]}"
+ 
+ yesno() {
+   [[ -t 0 ]] || return 0
+@@ -147,9 +148,11 @@ cmd_usage() {
+ 	        Insert new password. Optionally, echo the password back to the console
+ 	        during entry. Or, optionally, the entry may be multiline. Prompt before
+ 	        overwriting existing password unless forced.
+-	    $PROGRAM generate [--clip,-c] pass-name [pass-length]
+-	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
++	    $PROGRAM generate [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name [pass-length]
++	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified) with optionally no symbols.
+ 	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
++	        Prompt before overwriting existing password unless forced.
++	        Optionally replace only the first line of an existing file with a new password.
+ 	    $PROGRAM rm pass-name
+ 	        Remove existing password or directory.
+ 	    $PROGRAM mv old-path new-path
+@@ -263,17 +266,20 @@ cmd_insert() {
+ }
+ 
+ cmd_generate() {
+-  local opts clip=0 pass
+-  opts="$($GETOPT -o c -l clip -n "$PROGRAM" -- "$@")"
++  local opts clip=0 force=0 characters="$CHARACTER_SET" inplace=0 pass
++  opts="$($GETOPT -o ncif -l no-symbols,clip,in-place,force -n "$PROGRAM" -- "$@")"
+   local err=$?
+   eval set -- "$opts"
+   while true; do case $1 in
++    -n|--no-symbols) characters="$CHARACTER_SET_NO_SYMBOLS"; shift ;;
+     -c|--clip) clip=1; shift ;;
++    -f|--force) force=1; shift ;;
++    -i|--in-place) inplace=1; shift ;;
+     --) shift; break ;;
+   esac done
+ 
+-  [[ $err -ne 0 || ( $# -ne 2 && $# -ne 1 ) ]] \
+-    && die "Usage: $PROGRAM $COMMAND pass-name [pass-length]"
++  [[ $err -ne 0 || ( $# -ne 2 && $# -ne 1 ) || ( $force -eq 1 && $inplace -eq 1 ) ]] \
++    && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name [pass-length]"
+   local path="$1"
+   local length="${2:-$GENERATED_LENGTH}"
+   check_sneaky_paths "$path"
+@@ -282,12 +288,26 @@ cmd_generate() {
+   set_gpg_recipients
+   local passfile="$PREFIX/$path.gpg"
+ 
+-  [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwrite it?"
++  [[ $inplace -eq 0 && $force -eq 0 && -e $passfile ]] \
++    && yesno "An entry already exists for $path. Overwrite it?"
+ 
+-  read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
++  read -r -n $length pass < <(LC_ALL=C tr -dc "$characters" < /dev/urandom)
+   [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
+-  $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" \
+-    || die "Password encryption aborted."
++  if [[ $inplace -eq 0 ]]; then
++    $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" \
++      || die "Password encryption aborted."
++  else
++    local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
++    if $GPG -d "${GPG_OPTS[@]}" "$passfile" \
++         | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' \
++	 | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" "${GPG_OPTS[@]}"
++    then
++      mv "$passfile_temp" "$passfile"
++    else
++      rm -f "$passfile_temp"
++      die "Could not reencrypt new password."
++    fi
++  fi
+ 
+   if [[ $clip -eq 1 ]]; then
+     clip "$pass" "$path"
+
+~~~ step: rm-opts
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -153,8 +153,8 @@ cmd_usage() {
+ 	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
+ 	        Prompt before overwriting existing password unless forced.
+ 	        Optionally replace only the first line of an existing file with a new password.
+-	    $PROGRAM rm pass-name
+-	        Remove existing password or directory.
++	    $PROGRAM rm [--recursive,-r] [--force,-f] pass-name
++	        Remove existing password or directory, optionally forcefully.
+ 	    $PROGRAM mv old-path new-path
+ 	        Renames or moves old-path to new-path.
+ 	    $PROGRAM cp old-path new-path
+@@ -318,7 +318,16 @@ cmd_generate() {
+ }
+ 
+ cmd_delete() {
+-  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++  local opts recursive="" force=0
++  opts="$($GETOPT -o rf -l recursive,force -n "$PROGRAM" -- "$@")"
++  local err=$?
++  eval set -- "$opts"
++  while true; do case $1 in
++    -r|--recursive) recursive="-r"; shift ;;
++    -f|--force) force=1; shift ;;
++    --) shift; break ;;
++  esac done
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND [--recursive,-r] [--force,-f] pass-name"
+   local path="$1"
+   check_sneaky_paths "$path"
+ 
+@@ -327,9 +336,9 @@ cmd_delete() {
+   [[ -f $passfile && -d $passdir && $path == */ || ! -f $passfile ]] && passfile="${passdir%/}/"
+   [[ -e $passfile ]] || die "Error: $path is not in the password store."
+ 
+-  yesno "Are you sure you would like to delete $path?"
++  [[ $force -eq 1 ]] || yesno "Are you sure you would like to delete $path?"
+ 
+-  rm -r -f -v "$passfile"
++  rm $recursive -f -v "$passfile"
+   rmdir -p "${passfile%/*}" 2>/dev/null
+ }
+ 
+
+~~~ step: copy-move-opts
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -155,10 +155,10 @@ cmd_usage() {
+ 	        Optionally replace only the first line of an existing file with a new password.
+ 	    $PROGRAM rm [--recursive,-r] [--force,-f] pass-name
+ 	        Remove existing password or directory, optionally forcefully.
+-	    $PROGRAM mv old-path new-path
+-	        Renames or moves old-path to new-path.
+-	    $PROGRAM cp old-path new-path
+-	        Copies old-path to new-path.
++	    $PROGRAM mv [--force,-f] old-path new-path
++	        Renames or moves old-path to new-path, optionally forcefully.
++	    $PROGRAM cp [--force,-f] old-path new-path
++	        Copies old-path to new-path, optionally forcefully.
+ 	    $PROGRAM help
+ 	        Show this text.
+ 	    $PROGRAM version
+@@ -343,10 +343,17 @@ cmd_delete() {
+ }
+ 
+ cmd_copy_move() {
+-  local move=1
++  local opts move=1 force=0
+   [[ $1 == "copy" ]] && move=0
+   shift
+-  [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND old-path new-path"
++  opts="$($GETOPT -o f -l force -n "$PROGRAM" -- "$@")"
++  local err=$?
++  eval set -- "$opts"
++  while true; do case $1 in
++    -f|--force) force=1; shift ;;
++    --) shift; break ;;
++  esac done
++  [[ $# -ne 2 ]] && die "Usage: $PROGRAM $COMMAND [--force,-f] old-path new-path"
+   check_sneaky_paths "$@"
+   local old_path="$PREFIX/${1%/}"
+   local old_dir="$old_path"
+@@ -363,7 +370,7 @@ cmd_copy_move() {
+   [[ -d $old_path || -d $new_path || $new_path == */ ]] || new_path="${new_path}.gpg"
+ 
+   local interactive="-i"
+-  [[ ! -t 0 ]] && interactive="-f"
++  [[ ! -t 0 || $force -eq 1 ]] && interactive="-f"
+ 
+   if [[ $move -eq 1 ]]; then
+     mv $interactive -v "$old_path" "$new_path" || exit 1
+
+~~~ step: generic-qrcode
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -113,6 +113,22 @@ clip() {
+   echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
++qrcode() {
++  if [[ -n $DISPLAY || -n $WAYLAND_DISPLAY ]]; then
++    if type feh >/dev/null 2>&1; then
++      echo -n "$1" | qrencode --size 10 -o - | feh -x --title "pass: $2" -g +200+200 -
++      return
++    elif type gm >/dev/null 2>&1; then
++      echo -n "$1" | qrencode --size 10 -o - | gm display -title "pass: $2" -geometry +200+200 -
++      return
++    elif type display >/dev/null 2>&1; then
++      echo -n "$1" | qrencode --size 10 -o - | display -title "pass: $2" -geometry +200+200 -
++      return
++    fi
++  fi
++  echo -n "$1" | qrencode -t utf8
++}
++
+ GETOPT="getopt"
+ 
+ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
+
+~~~ step: macos-qrcode
+diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+--- a/src/platform/darwin.sh
++++ b/src/platform/darwin.sh
+@@ -12,6 +12,18 @@ clip() {
+   echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
++qrcode() {
++  if type imgcat >/dev/null 2>&1; then
++    echo -n "$1" | qrencode --size 10 -o - | imgcat
++  elif type gm >/dev/null 2>&1; then
++    echo -n "$1" | qrencode --size 10 -o - | gm display -title "pass: $2" -geometry +200+200 -
++  elif type display >/dev/null 2>&1; then
++    echo -n "$1" | qrencode --size 10 -o - | display -title "pass: $2" -geometry +200+200 -
++  else
++    echo -n "$1" | qrencode -t utf8
++  fi
++}
++
+ GETOPT="$(brew --prefix gnu-getopt 2>/dev/null \
+           || { which port &>/dev/null && echo /opt/local; } \
+           || echo /usr/local \
+
+~~~ step: show-qrcode
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -198,30 +198,35 @@ cmd_init() {
+ }
+ 
+ cmd_show() {
+-  local opts selected_line clip=0
+-  opts="$($GETOPT -o c:: -l clip:: -n "$PROGRAM" -- "$@")"
++  local opts selected_line clip=0 qrcode=0
++  opts="$($GETOPT -o q::c:: -l qrcode::,clip:: -n "$PROGRAM" -- "$@")"
+   local err=$?
+   eval set -- "$opts"
+   while true; do case $1 in
++    -q|--qrcode) qrcode=1; selected_line="${2:-1}"; shift 2 ;;
+     -c|--clip) clip=1; selected_line="${2:-1}"; shift 2 ;;
+     --) shift; break ;;
+   esac done
+ 
+-  [[ $err -ne 0 || $# -ne 1 ]] \
+-    && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] pass-name"
++  [[ $err -ne 0 || ( $qrcode -eq 1 && $clip -eq 1 ) || $# -ne 1 ]] \
++    && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [--qrcode[=line-number],-q[line-number]] pass-name"
+ 
+   local path="$1"
+   local passfile="$PREFIX/$path.gpg"
+   check_sneaky_paths "$path"
+   if [[ -f $passfile ]]; then
+-    if [[ $clip -eq 0 ]]; then
++    if [[ $clip -eq 0 && $qrcode -eq 0 ]]; then
+       $GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
+     else
+       [[ $selected_line =~ ^[0-9]+$ ]] || die "Clip location '$selected_line' is not a number."
+       local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +${selected_line} | head -n 1)"
+       [[ -n $pass ]] \
+ 	|| die "There is no password to put on the clipboard at line ${selected_line}."
+-      clip "$pass" "$path"
++      if [[ $clip -eq 1 ]]; then
++	clip "$pass" "$path"
++      elif [[ $qrcode -eq 1 ]]; then
++	qrcode "$pass" "$path"
++      fi
+     fi
+   elif [[ -d $PREFIX/$path ]]; then
+     die "Error: $path is a directory."
+
+~~~ step: generate-qrcode
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -287,20 +287,21 @@ cmd_insert() {
+ }
+ 
+ cmd_generate() {
+-  local opts clip=0 force=0 characters="$CHARACTER_SET" inplace=0 pass
+-  opts="$($GETOPT -o ncif -l no-symbols,clip,in-place,force -n "$PROGRAM" -- "$@")"
++  local opts qrcode=0 clip=0 force=0 characters="$CHARACTER_SET" inplace=0 pass
++  opts="$($GETOPT -o nqcif -l no-symbols,qrcode,clip,in-place,force -n "$PROGRAM" -- "$@")"
+   local err=$?
+   eval set -- "$opts"
+   while true; do case $1 in
+     -n|--no-symbols) characters="$CHARACTER_SET_NO_SYMBOLS"; shift ;;
++    -q|--qrcode) qrcode=1; shift ;;
+     -c|--clip) clip=1; shift ;;
+     -f|--force) force=1; shift ;;
+     -i|--in-place) inplace=1; shift ;;
+     --) shift; break ;;
+   esac done
+ 
+-  [[ $err -ne 0 || ( $# -ne 2 && $# -ne 1 ) || ( $force -eq 1 && $inplace -eq 1 ) ]] \
+-    && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name [pass-length]"
++  [[ $err -ne 0 || ( $# -ne 2 && $# -ne 1 ) || ( $force -eq 1 && $inplace -eq 1 ) || ( $qrcode -eq 1 && $clip -eq 1 ) ]] \
++    && die "Usage: $PROGRAM $COMMAND [--no-symbols,-n] [--clip,-c] [--qrcode,-q] [--in-place,-i | --force,-f] pass-name [pass-length]"
+   local path="$1"
+   local length="${2:-$GENERATED_LENGTH}"
+   check_sneaky_paths "$path"
+@@ -332,6 +333,8 @@ cmd_generate() {
+ 
+   if [[ $clip -eq 1 ]]; then
+     clip "$pass" "$path"
++  elif [[ $qrcode -eq 1 ]]; then
++    qrcode "$pass" "$path"
+   else
+     printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
+            "$path" "$pass"
+
+~~~ step: edit
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -164,6 +164,8 @@ cmd_usage() {
+ 	        Insert new password. Optionally, echo the password back to the console
+ 	        during entry. Or, optionally, the entry may be multiline. Prompt before
+ 	        overwriting existing password unless forced.
++	    $PROGRAM edit pass-name
++	        Insert a new password or edit an existing password using ${EDITOR:-vi}.
+ 	    $PROGRAM generate [--no-symbols,-n] [--clip,-c] [--in-place,-i | --force,-f] pass-name [pass-length]
+ 	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified) with optionally no symbols.
+ 	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
+@@ -286,6 +288,30 @@ cmd_insert() {
+   fi
+ }
+ 
++cmd_edit() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
++
++  local path="${1%/}"
++  check_sneaky_paths "$path"
++  mkdir -p -v "$PREFIX/$(dirname "$path")"
++  set_gpg_recipients
++  local passfile="$PREFIX/$path.gpg"
++
++  local tmp_file="$(mktemp -u "XXXXXX")-${path//\//-}.txt"
++
++  if [[ -f $passfile ]]; then
++    $GPG -d -o "$tmp_file" "${GPG_OPTS[@]}" "$passfile" || exit 1
++  fi
++  ${EDITOR:-vi} "$tmp_file"
++  [[ -f $tmp_file ]] || die "New password not saved."
++  $GPG -d -o - "${GPG_OPTS[@]}" "$passfile" 2>/dev/null \
++    | diff - "$tmp_file" &>/dev/null \
++    && die "Password unchanged."
++  while ! $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" "$tmp_file"; do
++    yesno "GPG encryption failed. Would you like to try again?"
++  done
++}
++
+ cmd_generate() {
+   local opts qrcode=0 clip=0 force=0 characters="$CHARACTER_SET" inplace=0 pass
+   opts="$($GETOPT -o nqcif -l no-symbols,qrcode,clip,in-place,force -n "$PROGRAM" -- "$@")"
+@@ -413,6 +439,7 @@ case "$1" in
+   version|--version) shift;  cmd_version "$@" ;;
+   show) shift;               cmd_show "$@" ;;
+   insert|add) shift;         cmd_insert "$@" ;;
++  edit) shift;               cmd_edit "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+   delete|rm|remove) shift;   cmd_delete "$@" ;;
+   rename|mv) shift;          cmd_copy_move "move" "$@" ;;
+
+~~~ step: generic-tmpdir
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -129,7 +129,37 @@ qrcode() {
+   echo -n "$1" | qrencode -t utf8
+ }
+ 
++tmpdir() {
++  [[ -n $SECURE_TMPDIR ]] && return
++  local warn=1
++  [[ $1 == "nowarn" ]] && warn=0
++  local template="$PROGRAM.XXXXXXXXXXXXX"
++  if [[ -d /dev/shm && -w /dev/shm && -x /dev/shm ]]; then
++    SECURE_TMPDIR="$(mktemp -d "/dev/shm/$template")"
++    remove_tmpfile() {
++      rm -rf "$SECURE_TMPDIR"
++    }
++    trap remove_tmpfile INT TERM EXIT
++  else
++    [[ $warn -eq 1 ]] && yesno "$(cat <<-_EOF
++	Your system does not have /dev/shm, which means that it may
++	be difficult to entirely erase the temporary non-encrypted
++	password file after editing.
++
++	Are you sure you would like to continue?
++	_EOF
++    )"
++    SECURE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
++    shred_tmpfile() {
++      find "$SECURE_TMPDIR" -type f -exec $SHRED {} +
++      rm -rf "$SECURE_TMPDIR"
++    }
++    trap shred_tmpfile INT TERM EXIT
++  fi
++}
++
+ GETOPT="getopt"
++SHRED="shred -f -z"
+ 
+ source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
+   2>/dev/null
+
+~~~ step: macos-tmpdir
+diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+--- a/src/platform/darwin.sh
++++ b/src/platform/darwin.sh
+@@ -12,6 +12,24 @@ clip() {
+   echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
+ }
+ 
++tmpdir() {
++  [[ -n $SECURE_TMPDIR ]] && return
++  unmount_tmpdir() {
++    [[ -n $SECURE_TMPDIR && -d $SECURE_TMPDIR && -n $DARWIN_RAMDISK_DEV ]] || return
++    umount "$SECURE_TMPDIR"
++    diskutil quiet eject "$DARWIN_RAMDISK_DEV"
++    rm -rf "$SECURE_TMPDIR"
++  }
++  trap unmount_tmpdir INT TERM EXIT
++  SECURE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$PROGRAM.XXXXXXXXXXXXX")"
++  DARWIN_RAMDISK_DEV="$(hdid -drivekey system-image=yes -nomount 'ram://32768' | cut -d ' ' -f 1)"
++  [[ -z $DARWIN_RAMDISK_DEV ]] && die "Error: could not create ramdisk."
++  newfs_hfs -M 700 "$DARWIN_RAMDISK_DEV" &>/dev/null \
++    || die "Error could not create filesystem on ramdisk."
++  mount -t hfs -o noatime -o nobrowse "$DARWIN_RAMDISK_DEV" "$SECURE_TMPDIR" \
++    || die "Error: could not mount filesystem on ramdisk."
++}
++
+ qrcode() {
+   if type imgcat >/dev/null 2>&1; then
+     echo -n "$1" | qrencode --size 10 -o - | imgcat
+@@ -28,3 +46,4 @@ GETOPT="$(brew --prefix gnu-getopt 2>/dev/null \
+           || { which port &>/dev/null && echo /opt/local; } \
+           || echo /usr/local \
+ 	 )/bin/getopt"
++SHRED="srm -f -z"
+
+~~~ step: freebsd-shred
+diff --git a/src/platform/freebsd.sh b/src/platform/freebsd.sh
+--- a/src/platform/freebsd.sh
++++ b/src/platform/freebsd.sh
+@@ -1 +1,2 @@
+ GETOPT="/usr/local/bin/getopt"
++SHRED="rm -P -f"
+
+~~~ step: openbsd-tmpdir
+diff --git a/src/platform/openbsd.sh b/src/platform/openbsd.sh
+--- a/src/platform/openbsd.sh
++++ b/src/platform/openbsd.sh
+@@ -1 +1,36 @@
++tmpdir() {
++  [[ -n $SECURE_TMPDIR ]] && return
++  local warn=1
++  [[ $1 == "nowarn" ]] && warn=0
++  local template="$PROGRAM.XXXXXXXXXXXXX"
++  if [[ $(sysctl -n kern.usermount) == 1 ]]; then
++    SECURE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
++    mount -t tmpfs -o -s16M tmpfs "$SECURE_TMPDIR" || die "Error: could not create tmpfs."
++    unmount_tmpdir() {
++      [[ -n $SECURE_TMPDIR && -d $SECURE_TMPDIR ]] || return
++      umount "$SECURE_TMPDIR"
++      rm -rf "$SECURE_TMPDIR"
++    }
++    trap unmount_tmpdir INT TERM EXIT
++  else
++    [[ $warn -eq 1 ]] && yesno "$(cat <<-_EOF
++	The sysctl kern.usermount is disabled, therefore it is not
++        possible to create a tmpfs for temporary storage of files
++        in memory.
++        This means that it may be difficult to entirely erase
++        the temporary non-encrypted password file after editing.
++
++        Are you sure you would like to continue?
++        _EOF
++    )"
++    SECURE_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/$template")"
++    shred_tmpfile() {
++      find "$SECURE_TMPDIR" -type f -exec $SHRED {} +
++      rm -rf "$SECURE_TMPDIR"
++    }
++    trap shred_tmpfile INT TERM EXIT
++  fi
++}
++
+ GETOPT="gnugetopt"
++SHRED="rm -P -f"
+
+~~~ step: use-tmpdir
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -327,7 +327,8 @@ cmd_edit() {
+   set_gpg_recipients
+   local passfile="$PREFIX/$path.gpg"
+ 
+-  local tmp_file="$(mktemp -u "XXXXXX")-${path//\//-}.txt"
++  tmpdir
++  local tmp_file="$(mktemp -u "$SECURE_TMPDIR/XXXXXX")-${path//\//-}.txt"
+ 
+   if [[ -f $passfile ]]; then
+     $GPG -d -o "$tmp_file" "${GPG_OPTS[@]}" "$passfile" || exit 1
+
+~~~ step: ls
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -187,6 +187,8 @@ cmd_usage() {
+ 	    $PROGRAM init gpg-id...
+ 	        Initialize new password storage and use gpg-id for encryption.
+ 	        Reencrypt existing passwords using new gpg-id.
++	    $PROGRAM [ls] [subfolder]
++	        List passwords.
+ 	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+ 	        Show existing password and optionally put it on the clipboard.
+ 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
+@@ -240,8 +242,8 @@ cmd_show() {
+     --) shift; break ;;
+   esac done
+ 
+-  [[ $err -ne 0 || ( $qrcode -eq 1 && $clip -eq 1 ) || $# -ne 1 ]] \
+-    && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [--qrcode[=line-number],-q[line-number]] pass-name"
++  [[ $err -ne 0 || ( $qrcode -eq 1 && $clip -eq 1 )]] \
++    && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [--qrcode[=line-number],-q[line-number]] [pass-name]"
+ 
+   local path="$1"
+   local passfile="$PREFIX/$path.gpg"
+@@ -261,7 +263,16 @@ cmd_show() {
+       fi
+     fi
+   elif [[ -d $PREFIX/$path ]]; then
+-    die "Error: $path is a directory."
++    if [[ -z $path ]]; then
++      echo "Password Store"
++    else
++      echo "${path%\/}"
++    fi
++    tree -C -l --noreport "$PREFIX/$path" \
++      | tail -n +2 \
++      | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
++  elif [[ -z $path ]]; then
++    die "Error: password store is empty. Try \"pass init\"."
+   else
+     die "Error: $path is not in the password store."
+   fi
+@@ -468,7 +479,7 @@ case "$1" in
+   init) shift;               cmd_init "$@" ;;
+   help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
+-  show) shift;               cmd_show "$@" ;;
++  show|ls|list) shift;       cmd_show "$@" ;;
+   insert|add) shift;         cmd_insert "$@" ;;
+   edit) shift;               cmd_edit "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+
+~~~ step: find
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -189,6 +189,8 @@ cmd_usage() {
+ 	        Reencrypt existing passwords using new gpg-id.
+ 	    $PROGRAM [ls] [subfolder]
+ 	        List passwords.
++	    $PROGRAM find pass-names...
++	        List passwords that match pass-names.
+ 	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+ 	        Show existing password and optionally put it on the clipboard.
+ 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
+@@ -278,6 +280,15 @@ cmd_show() {
+   fi
+ }
+ 
++cmd_find() {
++  [[ $# -eq 0 ]] && die "Usage: $PROGRAM $COMMAND pass-names..."
++  IFS="," eval 'echo "Search Terms: $*"'
++  local terms="*$(printf '%s*|*' "$@")"
++  tree -C -l --noreport -P "${terms%|*}" --prune --matchdirs --ignore-case "$PREFIX" \
++    | tail -n +2 \
++    | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
++}
++
+ cmd_insert() {
+   local opts multiline=0 noecho=1 force=0
+   opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
+@@ -480,6 +491,7 @@ case "$1" in
+   help|--help) shift;        cmd_usage "$@" ;;
+   version|--version) shift;  cmd_version "$@" ;;
+   show|ls|list) shift;       cmd_show "$@" ;;
++  find|search) shift;        cmd_find "$@" ;;
+   insert|add) shift;         cmd_insert "$@" ;;
+   edit) shift;               cmd_edit "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;
+
+~~~ step: grep
+diff --git a/src/password-store.sh b/src/password-store.sh
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -194,6 +194,8 @@ cmd_usage() {
+ 	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+ 	        Show existing password and optionally put it on the clipboard.
+ 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
++	    $PROGRAM grep search-string
++	        Search for password files containing search-string when decrypted.
+ 	    $PROGRAM insert [--echo,-e | --multiline,-m] [--force,-f] pass-name
+ 	        Insert new password. Optionally, echo the password back to the console
+ 	        during entry. Or, optionally, the entry may be multiline. Prompt before
+@@ -289,6 +291,22 @@ cmd_find() {
+     | sed -E 's/\.gpg(\x1B\[[0-9]+m)?( ->|$)/\1\2/g'
+ }
+ 
++cmd_grep() {
++  [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
++  local search="$1" passfile grepresults
++  while read -r -d "" passfile; do
++    grepresults="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | grep --color=always "$search")"
++    [[ $? -ne 0 ]] && continue
++    passfile="${passfile%.gpg}"
++    passfile="${passfile#$PREFIX/}"
++    local passfile_dir="${passfile%/*}/"
++    [[ $passfile_dir == "${passfile}/" ]] && passfile_dir=""
++    passfile="${passfile##*/}"
++    printf "\e[94m%s\e[1m%s\e[0m:\n" "$passfile_dir" "$passfile"
++    echo "$grepresults"
++  done < <(find -L "$PREFIX" -path '*/.git' -prune -o -iname '*.gpg' -print0)
++}
++
+ cmd_insert() {
+   local opts multiline=0 noecho=1 force=0
+   opts="$($GETOPT -o mef -l multiline,echo,force -n "$PROGRAM" -- "$@")"
+@@ -492,6 +510,7 @@ case "$1" in
+   version|--version) shift;  cmd_version "$@" ;;
+   show|ls|list) shift;       cmd_show "$@" ;;
+   find|search) shift;        cmd_find "$@" ;;
++  grep) shift;               cmd_grep "$@" ;;
+   insert|add) shift;         cmd_insert "$@" ;;
+   edit) shift;               cmd_edit "$@" ;;
+   generate) shift;           cmd_generate "$@" ;;

@@ -40,10 +40,13 @@ manager in small steps.
   * Cygwin `clip()`
   * macOS `clip()`
   * `-c` option for `generate` and `show` commands
-  * Pass line number to `-c` option
   * Clear clipboard after 45 seconds
   * Reset 45-second timer before starting a new one
   * Restore previous clipboard contents
+5. Getopt
+  * Find GNU getopt for the platform
+  * Use it for `-c/--clip` switch
+  * More switches
 5. QR codes
   * Generic `qrcode()`
   * macOS `qrcode()`
@@ -51,10 +54,9 @@ manager in small steps.
 6. Secure text editing
   * The `edit` command
   * Generic `tmpdir()`
-  * Sourcing platform-dependent script files
   * macOS `tmpdir()`
+  * FreeBSD `$SHRED`
   * OpenBSD `tmpdir()`
-  * `noplaintext.vim`?
 7. Listing and searching
   * The `ls` command
   * The `find` command
