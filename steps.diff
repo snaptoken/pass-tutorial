@@ -1,17 +1,17 @@
 ~~~ step: correct-horse-battery-staple
-diff --git a/src/password-store.sh b/src/password-store.sh
+diff --git a/pass b/pass
 new file mode 100644
 --- /dev/null
-+++ b/src/password-store.sh
++++ b/pass
 @@ -0,0 +1,3 @@
 +#!/usr/bin/env bash
 +
 +echo "correcthorsebatterystaple"
 
 ~~~ step: urandom
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -1,3 +1,3 @@
  #!/usr/bin/env bash
  
@@ -19,9 +19,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +LC_ALL=C tr -dc "[:graph:]" < /dev/urandom
 
 ~~~ step: take
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -1,3 +1,4 @@
  #!/usr/bin/env bash
  
@@ -30,9 +30,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +echo $pass
 
 ~~~ step: variables
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -1,4 +1,7 @@
  #!/usr/bin/env bash
  
@@ -44,9 +44,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  echo $pass
 
 ~~~ step: function
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -3,5 +3,9 @@
  GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
@@ -61,9 +61,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +cmd_generate
 
 ~~~ step: command
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -8,4 +8,8 @@ cmd_generate() {
    echo $pass
  }
@@ -76,9 +76,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
 +exit 0
 
 ~~~ step: version
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -3,12 +3,28 @@
  GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
@@ -110,9 +110,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  esac
 
 ~~~ step: help
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -18,12 +18,31 @@ cmd_version() {
  	_EOF
  }
@@ -147,9 +147,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    *)                         echo "Unrecognized command '$1'." ;;
 
 ~~~ step: persist
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -1,8 +1,20 @@
  #!/usr/bin/env bash
  
@@ -193,9 +193,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  PROGRAM="${0##*/}"
 
 ~~~ step: pass-length
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -35,8 +35,8 @@ cmd_usage() {
    echo
    cat <<-_EOF
@@ -227,9 +227,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
 
 ~~~ step: validation
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -14,6 +14,13 @@ die() {
    echo "$@" >&2
    exit 1
@@ -262,9 +262,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
 
 ~~~ step: show
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -42,6 +42,8 @@ cmd_usage() {
    echo
    cat <<-_EOF
@@ -311,9 +311,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  esac
 
 ~~~ step: default
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -42,7 +42,7 @@ cmd_usage() {
    echo
    cat <<-_EOF
@@ -333,9 +333,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  exit 0
 
 ~~~ step: insert
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -44,6 +44,8 @@ cmd_usage() {
  	Usage:
  	    $PROGRAM [show] pass-name
@@ -387,9 +387,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  esac
 
 ~~~ step: rm
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -48,6 +48,8 @@ cmd_usage() {
  	        Insert new password.
  	    $PROGRAM generate pass-name [pass-length]
@@ -432,9 +432,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  exit 0
 
 ~~~ step: mv
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -50,6 +50,8 @@ cmd_usage() {
  	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
  	    $PROGRAM rm pass-name
@@ -485,9 +485,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  exit 0
 
 ~~~ step: cp
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -52,6 +52,8 @@ cmd_usage() {
  	        Remove existing password or directory.
  	    $PROGRAM mv old-path new-path
@@ -536,9 +536,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  exit 0
 
 ~~~ step: init
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -42,6 +42,8 @@ cmd_usage() {
    echo
    cat <<-_EOF
@@ -576,9 +576,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    show) shift;               cmd_show "$@" ;;
 
 ~~~ step: gpg
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -1,5 +1,11 @@
  #!/usr/bin/env bash
  
@@ -593,10 +593,10 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
 
 ~~~ step: gpg-winpath
-diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
+diff --git a/platform/cygwin.sh b/platform/cygwin.sh
 new file mode 100644
 --- /dev/null
-+++ b/src/platform/cygwin.sh
++++ b/platform/cygwin.sh
 @@ -0,0 +1,18 @@
 +gpg_winpath() {
 +  local args=("$@")
@@ -618,9 +618,9 @@ new file mode 100644
 +fi
 
 ~~~ step: source-platform
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -28,6 +28,9 @@ check_sneaky_paths() {
    done
  }
@@ -633,9 +633,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  	============================================
 
 ~~~ step: gpg-recipients
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -20,6 +20,35 @@ die() {
    echo "$@" >&2
    exit 1
@@ -674,9 +674,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    for path in "$@"; do
 
 ~~~ step: txt-to-gpg
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -118,7 +118,7 @@ cmd_show() {
    [[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND pass-name"
  
@@ -734,9 +734,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    [[ ! -t 0 ]] && interactive="-f"
 
 ~~~ step: encrypt
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -138,6 +138,7 @@ cmd_insert() {
    [[ -e $passfile ]] && yesno "An entry already exists for $path. Overwite it?"
  
@@ -774,9 +774,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
           "$path" "$pass"
 
 ~~~ step: decrypt
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -121,7 +121,7 @@ cmd_show() {
    local passfile="$PREFIX/$path.gpg"
    check_sneaky_paths "$path"
@@ -788,9 +788,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    else
 
 ~~~ step: reencrypt-path
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -49,6 +49,43 @@ set_gpg_recipients() {
      GPG_RECIPIENTS+=( "$gpg_id" )
    done < "$PREFIX/.gpg-id"
@@ -837,9 +837,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    for path in "$@"; do
 
 ~~~ step: init-reencrypt
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -119,6 +119,7 @@ cmd_usage() {
  	Usage:
  	    $PROGRAM init gpg-id...
@@ -859,11 +859,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  cmd_show() {
 
 ~~~ step: generic-clip
-diff --git a/src/password-store.sh b/src/password-store.sh
-old mode 100644
-new mode 100755
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -7,6 +7,7 @@ which gpg2 &>/dev/null && GPG="gpg2"
  [[ -n $GPG_AGENT_INFO || $GPG == "gpg2" ]] && GPG_OPTS+=( "--batch" "--use-agent" )
  
@@ -887,9 +885,9 @@ new mode 100755
  
 
 ~~~ step: cygwin-clip
-diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
---- a/src/platform/cygwin.sh
-+++ b/src/platform/cygwin.sh
+diff --git a/platform/cygwin.sh b/platform/cygwin.sh
+--- a/platform/cygwin.sh
++++ b/platform/cygwin.sh
 @@ -1,3 +1,8 @@
 +clip() {
 +  echo -n "$1" > /dev/clipboard
@@ -901,10 +899,10 @@ diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
    local could_be_filenames="true"
 
 ~~~ step: macos-clip
-diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
+diff --git a/platform/darwin.sh b/platform/darwin.sh
 new file mode 100644
 --- /dev/null
-+++ b/src/platform/darwin.sh
++++ b/platform/darwin.sh
 @@ -0,0 +1,4 @@
 +clip() {
 +  echo -n "$1" | pbcopy
@@ -912,9 +910,9 @@ new file mode 100644
 +}
 
 ~~~ step: show-generate-clip
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -127,11 +127,11 @@ cmd_usage() {
  	    $PROGRAM init gpg-id...
  	        Initialize new password storage and use gpg-id for encryption.
@@ -984,9 +982,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  cmd_delete() {
 
 ~~~ step: generic-clip-secure
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -8,6 +8,7 @@ which gpg2 &>/dev/null && GPG="gpg2"
  
  PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store2}"
@@ -1018,9 +1016,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
 
 ~~~ step: cygwin-clip-secure
-diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
---- a/src/platform/cygwin.sh
-+++ b/src/platform/cygwin.sh
+diff --git a/platform/cygwin.sh b/platform/cygwin.sh
+--- a/platform/cygwin.sh
++++ b/platform/cygwin.sh
 @@ -1,6 +1,15 @@
  clip() {
 +  local sleep_argv0="password store sleep on display $DISPLAY"
@@ -1040,9 +1038,9 @@ diff --git a/src/platform/cygwin.sh b/src/platform/cygwin.sh
  gpg_winpath() {
 
 ~~~ step: macos-clip-secure
-diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
---- a/src/platform/darwin.sh
-+++ b/src/platform/darwin.sh
+diff --git a/platform/darwin.sh b/platform/darwin.sh
+--- a/platform/darwin.sh
++++ b/platform/darwin.sh
 @@ -1,4 +1,13 @@
  clip() {
 +  local sleep_argv0="password store sleep for user $(id -u)"
@@ -1060,9 +1058,9 @@ diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
  }
 
 ~~~ step: generic-getopt
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -112,6 +112,8 @@ clip() {
    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
  }
@@ -1074,9 +1072,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  
 
 ~~~ step: macos-getopt
-diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
---- a/src/platform/darwin.sh
-+++ b/src/platform/darwin.sh
+diff --git a/platform/darwin.sh b/platform/darwin.sh
+--- a/platform/darwin.sh
++++ b/platform/darwin.sh
 @@ -11,3 +11,8 @@ clip() {
    ) 2>/dev/null & disown
    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
@@ -1088,25 +1086,25 @@ diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
 +	 )/bin/getopt"
 
 ~~~ step: freebsd-getopt
-diff --git a/src/platform/freebsd.sh b/src/platform/freebsd.sh
+diff --git a/platform/freebsd.sh b/platform/freebsd.sh
 new file mode 100644
 --- /dev/null
-+++ b/src/platform/freebsd.sh
++++ b/platform/freebsd.sh
 @@ -0,0 +1 @@
 +GETOPT="/usr/local/bin/getopt"
 
 ~~~ step: openbsd-getopt
-diff --git a/src/platform/openbsd.sh b/src/platform/openbsd.sh
+diff --git a/platform/openbsd.sh b/platform/openbsd.sh
 new file mode 100644
 --- /dev/null
-+++ b/src/platform/openbsd.sh
++++ b/platform/openbsd.sh
 @@ -0,0 +1 @@
 +GETOPT="gnugetopt"
 
 ~~~ step: use-getopt
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -139,13 +139,15 @@ cmd_usage() {
  	Usage:
  	    $PROGRAM init gpg-id...
@@ -1184,9 +1182,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    check_sneaky_paths "$path"
 
 ~~~ step: clip-line-number
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -140,7 +140,7 @@ cmd_usage() {
  	    $PROGRAM init gpg-id...
  	        Initialize new password storage and use gpg-id for encryption.
@@ -1233,9 +1231,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    elif [[ -d $PREFIX/$path ]]; then
 
 ~~~ step: insert-opts
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -143,8 +143,10 @@ cmd_usage() {
  	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
  	        Show existing password and optionally put it on the clipboard.
@@ -1321,9 +1319,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  cmd_generate() {
 
 ~~~ step: generate-opts
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -11,6 +11,7 @@ X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
  CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
  GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
@@ -1404,9 +1402,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
      clip "$pass" "$path"
 
 ~~~ step: rm-opts
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -153,8 +153,8 @@ cmd_usage() {
  	        Optionally put it on the clipboard and clear board after $CLIP_TIME seconds.
  	        Prompt before overwriting existing password unless forced.
@@ -1450,9 +1448,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  
 
 ~~~ step: copy-move-opts
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -155,10 +155,10 @@ cmd_usage() {
  	        Optionally replace only the first line of an existing file with a new password.
  	    $PROGRAM rm [--recursive,-r] [--force,-f] pass-name
@@ -1499,9 +1497,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
      mv $interactive -v "$old_path" "$new_path" || exit 1
 
 ~~~ step: generic-qrcode
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -113,6 +113,22 @@ clip() {
    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
  }
@@ -1527,9 +1525,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
  source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" \
 
 ~~~ step: macos-qrcode
-diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
---- a/src/platform/darwin.sh
-+++ b/src/platform/darwin.sh
+diff --git a/platform/darwin.sh b/platform/darwin.sh
+--- a/platform/darwin.sh
++++ b/platform/darwin.sh
 @@ -12,6 +12,18 @@ clip() {
    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
  }
@@ -1551,9 +1549,9 @@ diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
            || echo /usr/local \
 
 ~~~ step: show-qrcode
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -198,30 +198,35 @@ cmd_init() {
  }
  
@@ -1598,9 +1596,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
      die "Error: $path is a directory."
 
 ~~~ step: generate-qrcode
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -287,20 +287,21 @@ cmd_insert() {
  }
  
@@ -1638,9 +1636,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
             "$path" "$pass"
 
 ~~~ step: edit
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -164,6 +164,8 @@ cmd_usage() {
  	        Insert new password. Optionally, echo the password back to the console
  	        during entry. Or, optionally, the entry may be multiline. Prompt before
@@ -1691,9 +1689,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    rename|mv) shift;          cmd_copy_move "move" "$@" ;;
 
 ~~~ step: generic-tmpdir
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -129,7 +129,37 @@ qrcode() {
    echo -n "$1" | qrencode -t utf8
  }
@@ -1734,9 +1732,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    2>/dev/null
 
 ~~~ step: macos-tmpdir
-diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
---- a/src/platform/darwin.sh
-+++ b/src/platform/darwin.sh
+diff --git a/platform/darwin.sh b/platform/darwin.sh
+--- a/platform/darwin.sh
++++ b/platform/darwin.sh
 @@ -12,6 +12,24 @@ clip() {
    echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
  }
@@ -1769,17 +1767,17 @@ diff --git a/src/platform/darwin.sh b/src/platform/darwin.sh
 +SHRED="srm -f -z"
 
 ~~~ step: freebsd-shred
-diff --git a/src/platform/freebsd.sh b/src/platform/freebsd.sh
---- a/src/platform/freebsd.sh
-+++ b/src/platform/freebsd.sh
+diff --git a/platform/freebsd.sh b/platform/freebsd.sh
+--- a/platform/freebsd.sh
++++ b/platform/freebsd.sh
 @@ -1 +1,2 @@
  GETOPT="/usr/local/bin/getopt"
 +SHRED="rm -P -f"
 
 ~~~ step: openbsd-tmpdir
-diff --git a/src/platform/openbsd.sh b/src/platform/openbsd.sh
---- a/src/platform/openbsd.sh
-+++ b/src/platform/openbsd.sh
+diff --git a/platform/openbsd.sh b/platform/openbsd.sh
+--- a/platform/openbsd.sh
++++ b/platform/openbsd.sh
 @@ -1 +1,36 @@
 +tmpdir() {
 +  [[ -n $SECURE_TMPDIR ]] && return
@@ -1819,9 +1817,9 @@ diff --git a/src/platform/openbsd.sh b/src/platform/openbsd.sh
 +SHRED="rm -P -f"
 
 ~~~ step: use-tmpdir
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -327,7 +327,8 @@ cmd_edit() {
    set_gpg_recipients
    local passfile="$PREFIX/$path.gpg"
@@ -1834,9 +1832,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
      $GPG -d -o "$tmp_file" "${GPG_OPTS[@]}" "$passfile" || exit 1
 
 ~~~ step: ls
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -187,6 +187,8 @@ cmd_usage() {
  	    $PROGRAM init gpg-id...
  	        Initialize new password storage and use gpg-id for encryption.
@@ -1886,9 +1884,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    generate) shift;           cmd_generate "$@" ;;
 
 ~~~ step: find
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -189,6 +189,8 @@ cmd_usage() {
  	        Reencrypt existing passwords using new gpg-id.
  	    $PROGRAM [ls] [subfolder]
@@ -1924,9 +1922,9 @@ diff --git a/src/password-store.sh b/src/password-store.sh
    generate) shift;           cmd_generate "$@" ;;
 
 ~~~ step: grep
-diff --git a/src/password-store.sh b/src/password-store.sh
---- a/src/password-store.sh
-+++ b/src/password-store.sh
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
 @@ -194,6 +194,8 @@ cmd_usage() {
  	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
  	        Show existing password and optionally put it on the clipboard.
