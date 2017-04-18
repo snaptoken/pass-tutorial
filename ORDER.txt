@@ -1,0 +1,60 @@
+***PASSWORD GENERATOR***
+cmd_generate()
+cmd_version()
+cmd_usage()
+die()
+
+***PERSIST TO DISK***
+cmd_generate() persists to disk
+yesno()
+check_sneaky_paths()
+cmd_show() (with ls)
+cmd_find()
+cmd_delete()
+
+***ENCRYPTION***
+cmd_init()
+set $GPG, $GPG_OPTS, etc.
+set_gpg_recipients()
+encrypt in cmd_generate()
+decrypt in cmd_show()
+
+***GETOPT***
+clip()
+getopt
+qrcode()
+cmd_generate() options
+cmd_delete() options
+
+***MULTILINE FILES***
+cmd_insert()
+cmd_edit()
+tmpdir()
+-c,-q with line number
+-i option to cmd_generate()
+cmd_copy_move()
+cmd_grep()
+
+***GIT SUPPORT***
+set_git()
+git_add_file()
+git_commit()
+cmd_git()
+git support for all commands
+
+***SIGNING & VERIFICATION***
+verify_file()
+sign file in cmd_init()
+sign git commits
+
+***MULTIPLE PASSWORD STORES***
+multiple .gpg-id files
+reencrypt_path()
+
+***EXTENSION SUPPORT***
+cmd_extension()
+pass-update extension
+
+***COMPLETION***
+shell completion
+
