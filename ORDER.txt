@@ -37,8 +37,8 @@ cmd_grep()
 
 ***GIT SUPPORT***
 set_git()
-git_add_file()
 git_commit()
+git_add_file()
 cmd_git()
 git support for all commands
 
@@ -49,6 +49,7 @@ sign git commits
 
 ***MULTIPLE PASSWORD STORES***
 multiple .gpg-id files
+git support for cmd_init()
 reencrypt_path()
 
 ***EXTENSION SUPPORT***
