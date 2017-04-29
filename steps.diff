@@ -17,7 +17,7 @@ diff --git a/pass b/pass
  
 -echo "correcthorsebatterystaple"
 +pass="correcthorsebatterystaple"
-+echo $pass
++echo "$pass"
 
 ~~~ step: urandom
 diff --git a/pass b/pass
@@ -28,7 +28,7 @@ diff --git a/pass b/pass
  
 -pass="correcthorsebatterystaple"
 +read -r -n 25 pass < <(LC_ALL=C tr -dc "[:graph:]" < /dev/urandom)
- echo $pass
+ echo "$pass"
 
 ~~~ step: env-variables
 diff --git a/pass b/pass
@@ -42,7 +42,7 @@ diff --git a/pass b/pass
 +CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
 +
 +read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
- echo $pass
+ echo "$pass"
 
 ~~~ step: function
 diff --git a/pass b/pass
@@ -53,11 +53,11 @@ diff --git a/pass b/pass
  CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
  
 -read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
--echo $pass
+-echo "$pass"
 +cmd_generate() {
 +  local pass
 +  read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
-+  echo $pass
++  echo "$pass"
 +}
 +
 +cmd_generate
@@ -67,7 +67,7 @@ diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
 @@ -9,4 +9,9 @@ cmd_generate() {
-   echo $pass
+   echo "$pass"
  }
  
 -cmd_generate
@@ -119,7 +119,7 @@ diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
 @@ -24,11 +24,8 @@ cmd_generate() {
-   echo $pass
+   echo "$pass"
  }
  
 -if [[ "$1" == generate ]]; then
@@ -163,7 +163,7 @@ diff --git a/pass b/pass
  cmd_generate() {
    local pass
    read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
-   echo $pass
+   echo "$pass"
  }
  
 +PROGRAM="$0"
@@ -179,7 +179,7 @@ diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
 @@ -40,7 +40,7 @@ cmd_generate() {
-   echo $pass
+   echo "$pass"
  }
  
 -PROGRAM="$0"
@@ -209,7 +209,7 @@ diff --git a/pass b/pass
 -  read -r -n $GENERATED_LENGTH pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
 +  local length="${1:-$GENERATED_LENGTH}"
 +  read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
-   echo $pass
+   echo "$pass"
  }
  
 @@ -45,7 +46,7 @@ PROGRAM="${0##*/}"
@@ -285,7 +285,7 @@ diff --git a/pass b/pass
 +  [[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
 +
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
-   echo $pass
+   echo "$pass"
  }
 
 ~~~ step: validate-pass
@@ -297,7 +297,7 @@ diff --git a/pass b/pass
  
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
 +  [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
-   echo $pass
+   echo "$pass"
  }
  
 
@@ -341,8 +341,8 @@ diff --git a/pass b/pass
  
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
    [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
--  echo $pass
-+  echo $pass > $passfile
+-  echo "$pass"
++  echo "$pass" > $passfile
  }
  
  PROGRAM="${0##*/}"
@@ -413,7 +413,7 @@ diff --git a/pass b/pass
 +
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
    [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
-   echo $pass > $passfile
+   echo "$pass" > $passfile
 
 ~~~ step: sneaky-paths
 diff --git a/pass b/pass
@@ -450,7 +450,7 @@ diff --git a/pass b/pass
 @@ -70,6 +70,9 @@ cmd_generate() {
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
    [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
-   echo $pass > $passfile
+   echo "$pass" > $passfile
 +
 +  printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" \
 +         "$path" "$pass"
@@ -929,7 +929,7 @@ diff --git a/pass b/pass
  
    read -r -n $length pass < <(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom)
    [[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
--  echo $pass > $passfile
+-  echo "$pass" > $passfile
 +  $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" \
 +    || die "Password encryption aborted."
  
