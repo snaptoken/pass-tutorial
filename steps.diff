@@ -66,7 +66,7 @@ diff --git a/pass b/pass
 diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
-@@ -9,4 +9,9 @@ cmd_generate() {
+@@ -9,4 +9,8 @@ cmd_generate() {
    echo "$pass"
  }
  
@@ -76,7 +76,6 @@ diff --git a/pass b/pass
 +else
 +  echo "Unrecognized command '$1'."
 +fi
-+
 
 ~~~ step: version
 diff --git a/pass b/pass
@@ -118,7 +117,7 @@ diff --git a/pass b/pass
 diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
-@@ -24,11 +24,8 @@ cmd_generate() {
+@@ -24,10 +24,8 @@ cmd_generate() {
    echo "$pass"
  }
  
@@ -129,7 +128,6 @@ diff --git a/pass b/pass
 -else
 -  echo "Unrecognized command '$1'."
 -fi
--
 +case "$1" in
 +  version|--version)  cmd_version ;;
 +  generate)           cmd_generate ;;
