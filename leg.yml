@@ -2,6 +2,7 @@
 :name: pass
 :version: "0.0.1"
 :title: Build Your Own Password Manager
+:sync: repo
 :rouge_theme: github
 :bold_weight: 500
 :repo_author:

@@ -186,16 +186,6 @@ diff --git a/pass b/pass
  case "$1" in
    help|--help)        cmd_usage ;;
 
-~~~ step: exit-success
-diff --git a/pass b/pass
---- a/pass
-+++ b/pass
-@@ -48,3 +48,4 @@ case "$1" in
-   generate)           cmd_generate ;;
-   *)                  echo "Unrecognized command '$1'." ;;
- esac
-+exit 0
-
 ~~~ step: generate-length
 diff --git a/pass b/pass
 --- a/pass
@@ -210,7 +200,7 @@ diff --git a/pass b/pass
    echo "$pass"
  }
  
-@@ -45,7 +46,7 @@ PROGRAM="${0##*/}"
+@@ -45,6 +46,6 @@ PROGRAM="${0##*/}"
  case "$1" in
    help|--help)        cmd_usage ;;
    version|--version)  cmd_version ;;
@@ -218,13 +208,12 @@ diff --git a/pass b/pass
 +  generate)           cmd_generate "$2" ;;
    *)                  echo "Unrecognized command '$1'." ;;
  esac
- exit 0
 
 ~~~ step: arguments
 diff --git a/pass b/pass
 --- a/pass
 +++ b/pass
-@@ -44,9 +44,9 @@ cmd_generate() {
+@@ -44,8 +44,8 @@ cmd_generate() {
  PROGRAM="${0##*/}"
  
  case "$1" in
@@ -237,7 +226,6 @@ diff --git a/pass b/pass
 +  generate) shift;           cmd_generate "$@" ;;
 +  *)                         echo "Unrecognized command '$1'." ;;
  esac
- exit 0
 
 ~~~ step: pass-length-usage
 diff --git a/pass b/pass
@@ -523,14 +511,13 @@ diff --git a/pass b/pass
  	        Show existing password.
  	    $PROGRAM generate pass-name [pass-length]
  	        Generate a new password of pass-length (or $GENERATED_LENGTH if unspecified).
-@@ -96,6 +96,6 @@ case "$1" in
+@@ -96,5 +96,5 @@ case "$1" in
    version|--version) shift;  cmd_version "$@" ;;
    show) shift;               cmd_show "$@" ;;
    generate) shift;           cmd_generate "$@" ;;
 -  *)                         echo "Unrecognized command '$1'." ;;
 +  *)                         COMMAND="show"; cmd_show "$@" ;;
  esac
- exit 0
 
 ~~~ step: ls
 diff --git a/pass b/pass
@@ -647,14 +634,13 @@ diff --git a/pass b/pass
  PROGRAM="${0##*/}"
  COMMAND="$1"
  
-@@ -119,6 +125,7 @@ case "$1" in
+@@ -119,5 +125,6 @@ case "$1" in
    show|ls|list) shift;       cmd_show "$@" ;;
    find|search) shift;        cmd_find "$@" ;;
    generate) shift;           cmd_generate "$@" ;;
 +  delete|rm|remove) shift;   cmd_delete "$@" ;;
    *)                         COMMAND="show"; cmd_show "$@" ;;
  esac
- exit 0
 
 ~~~ step: rm-file
 diff --git a/pass b/pass
@@ -696,6 +682,16 @@ diff --git a/pass b/pass
    rmdir -p "${passfile%/*}" 2>/dev/null
  }
  
+
+~~~ step: exit-success
+diff --git a/pass b/pass
+--- a/pass
++++ b/pass
+@@ -138,3 +138,4 @@ case "$1" in
+   delete|rm|remove) shift;   cmd_delete "$@" ;;
+   *)                         COMMAND="show"; cmd_show "$@" ;;
+ esac
++exit 0
 
 ~~~ step: prepare-init
 diff --git a/pass b/pass
